@@ -1,6 +1,7 @@
 module Parser (
         readExpr,
-        showVal
+        showVal,
+        LispVal(Atom, List, DottedList, Number, String, Bool)
 ) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
@@ -78,8 +79,7 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 spaces :: Parser ()
 spaces = skipMany1 space
 
-readExpr :: String -> String
+readExpr :: String -> LispVal
 readExpr input = case parse parseExpr "lisp" input of
-    Left err -> "No match: " ++ show err
-    Right val -> "Found value: " ++ showVal val
-
+    Left err -> String $ "No match: " ++ show err
+    Right val -> val
