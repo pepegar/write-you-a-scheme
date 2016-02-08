@@ -17,4 +17,5 @@ executable write-you-a-scheme
   main-is:             Main.hs
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5,
-                       parsec == 3.1.9
+                       parsec == 3.1.9,
+                       mtl == 2.2.1

@@ -1,11 +1,24 @@
 module Parser (
         readExpr,
         showVal,
-        LispVal(Atom, List, DottedList, Number, String, Bool)
+        LispVal(Atom, List, DottedList, Number, String, Bool),
+        ThrowsError,
+        LispError(
+            NumArgs,
+            TypeMismatch,
+            Parser,
+            BadSpecialForm,
+            NotFunction,
+            UnboundVar,
+            Default),
+        throwError,
+        extractValue,
+        trapError
 ) where
 
-import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
+import Control.Monad.Error
+import Text.ParserCombinators.Parsec hiding (spaces)
 
 data LispVal = Atom String
              | List [LispVal]
@@ -15,6 +28,36 @@ data LispVal = Atom String
              | Bool Bool
 
 instance Show LispVal where show = showVal
+
+data LispError = NumArgs Integer [LispVal]
+               | TypeMismatch String LispVal
+               | Parser ParseError
+               | BadSpecialForm String LispVal
+               | NotFunction String String
+               | UnboundVar String String
+               | Default String
+
+instance Show LispError where show = showError
+
+instance Error LispError where
+     noMsg = Default "An error has occurred"
+     strMsg = Default
+
+type ThrowsError = Either LispError
+
+
+showError :: LispError -> String
+showError (UnboundVar message varname)  = message ++ ": " ++ varname
+showError (BadSpecialForm message form) = message ++ ": " ++ show form
+showError (NotFunction message func)    = message ++ ": " ++ show func
+showError (NumArgs expected found)      = "Expected " ++ show expected ++ " args; found values " ++ unwordsList found
+showError (TypeMismatch expected found) = "Invalid type: expected " ++ expected ++ ", found " ++ show found
+showError (Parser parseErr)             = "Parse error at " ++ show parseErr
+
+trapError action = catchError action (return . show)
+
+extractValue :: ThrowsError a -> a
+extractValue (Right a) = a
 
 unwordsList :: [LispVal] -> String
 unwordsList = unwords . map showVal
@@ -79,7 +122,7 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 spaces :: Parser ()
 spaces = skipMany1 space
 
-readExpr :: String -> LispVal
+readExpr :: String -> ThrowsError LispVal
 readExpr input = case parse parseExpr "lisp" input of
-    Left err -> String $ "No match: " ++ show err
-    Right val -> val
+    Left err -> throwError $ Parser err
+    Right val -> return val
