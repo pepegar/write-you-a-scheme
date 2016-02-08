@@ -1,5 +1,6 @@
 module Parser (
-        readExpr
+        readExpr,
+        showVal
 ) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
@@ -11,6 +12,21 @@ data LispVal = Atom String
              | Number Integer
              | String String
              | Bool Bool
+
+instance Show LispVal where show = showVal
+
+unwordsList :: [LispVal] -> String
+unwordsList = unwords . map showVal
+
+showVal :: LispVal -> String
+showVal (String contents) = "\"" ++ contents ++ "\""
+showVal (Atom name) = name
+showVal (Number contents) = show contents
+showVal (Bool True) = "#t"
+showVal (Bool False) = "#f"
+showVal (List contents) = "(" ++ unwordsList contents ++ ")"
+showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
+
 
 parseString :: Parser LispVal
 parseString = do
@@ -65,5 +81,5 @@ spaces = skipMany1 space
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
     Left err -> "No match: " ++ show err
-    Right val -> "Found value"
+    Right val -> "Found value: " ++ showVal val
 
